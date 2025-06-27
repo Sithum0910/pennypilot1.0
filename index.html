@@ -1,15 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Budget Tracker</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container">
     <h1>Budget Tracker</h1>
-    <button id="googleSignIn" class="btn-google">Sign in with Google</button>
+
+    <!-- Google sign-in button -->
+    <button id="googleSignIn" class="btn-google">
+      <img src="https://accounts.google.com/favicon.ico" width="20" height="20" />
+      <span>Sign in with Google</span>
+    </button>
 
     <div id="app" class="hidden">
       <header class="header">
@@ -32,12 +38,11 @@
       </div>
 
       <ul id="transactions"></ul>
+      <canvas id="chart" height="200"></canvas>
+      <button id="csvBtn" class="btn-secondary">Download CSV</button>
     </div>
   </div>
 
-  <!-- Main logic -->
-  <script type="module" src="script.js">
-         src="https://cdn.jsdelivr.net/npm/chart.js">
-  </script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
