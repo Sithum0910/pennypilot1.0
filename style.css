@@ -1,11 +1,12 @@
 :root {
   --bg-light: #f5f7fa;
-  --bg-dark: #111827;
   --text-light: #111;
+  --card-light: #fff;
+  --bg-dark: #111827;
   --text-dark: #f3f4f6;
-  --card-light: #ffffff;
   --card-dark: #1f2937;
-  --accent: #0068f0;
+  --accent: #16a34a;
+  --accent-dark: #10b981;
 }
 
 html, body {
@@ -28,25 +29,56 @@ body.dark {
   padding: 1rem;
 }
 
-.hidden { display: none; }
+.hidden {
+  display: none;
+}
 
-button { cursor: pointer; border: none; }
+button {
+  cursor: pointer;
+  border: none;
+}
 
 .btn-google {
-  background: var(--accent);
-  color: #fff;
-  padding: 0.6rem 1rem;
-  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #fff;
+  color: #444;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem;
   width: 100%;
   font-weight: 600;
+}
+
+.btn-google img {
+  border-radius: 50%;
 }
 
 .btn-primary {
   background: var(--accent);
   color: #fff;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
+  padding: 0.6rem;
+  border-radius: 0.6rem;
   width: 100%;
+}
+
+body.dark .btn-primary {
+  background: var(--accent-dark);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #d1d5db;
+  border-radius: 0.6rem;
+  padding: 0.5rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+body.dark .btn-secondary {
+  border-color: #374151;
 }
 
 .header {
@@ -68,8 +100,8 @@ button { cursor: pointer; border: none; }
 }
 
 input, select {
-  padding: 0.5rem;
-  border-radius: 0.4rem;
+  padding: 0.55rem;
+  border-radius: 0.5rem;
   border: 1px solid #d1d5db;
 }
 
@@ -81,10 +113,10 @@ ul#transactions {
 
 ul#transactions li {
   background: var(--card-light);
-  padding: 0.5rem;
+  padding: 0.55rem;
   margin: 0.25rem 0;
   border-left: 5px solid;
-  border-radius: 0.25rem;
+  border-radius: 0.35rem;
 }
 
 body.dark ul#transactions li {
