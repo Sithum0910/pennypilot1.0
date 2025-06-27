@@ -1,3 +1,8 @@
+/*******************************
+  Budget-Tracker – script.js
+  Last updated: redirect-fix
+*******************************/
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 import {
   getAuth,
@@ -19,7 +24,7 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-// Firebase config
+/* ─── Firebase config ─── */
 const firebaseConfig = {
   apiKey: "AIzaSyCnodPUZZs4smAyw-9JQx1_3-iWIJzQeWU",
   authDomain: "pennypilot2-c0c07.firebaseapp.com",
@@ -30,226 +35,220 @@ const firebaseConfig = {
   measurementId: "G-QRLW06V5T8"
 };
 
-const app = initializeApp(firebaseConfig);
+const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db   = getFirestore(app);
 
-// UI elements
-const googleBtn = document.getElementById('googleSignIn');
-const skipBtn = document.getElementById('skipSignIn');
-const signOutBtn = document.getElementById('signOut');
-const themeToggle = document.getElementById('themeToggle');
-const appDiv = document.getElementById('app');
-const addBtn = document.getElementById('add');
-const txList = document.getElementById('transactions');
-const balanceEl = document.getElementById('balance');
-const csvBtn = document.getElementById('csvBtn');
-const chartCanvas = document.getElementById('chart');
-const signInLaterBtn = document.getElementById('signInLater');
+/* ─── UI references ─── */
+const googleBtn       = document.getElementById('googleSignIn');
+const skipBtn         = document.getElementById('skipSignIn');
+const signOutBtn      = document.getElementById('signOut');
+const signInLaterBtn  = document.getElementById('signInLater');
+const themeToggle     = document.getElementById('themeToggle');
+const appDiv          = document.getElementById('app');
+const addBtn          = document.getElementById('add');
+const txList          = document.getElementById('transactions');
+const balanceEl       = document.getElementById('balance');
+const csvBtn          = document.getElementById('csvBtn');
+const chartCanvas     = document.getElementById('chart');
 
-let uid = null;
-let transactionData = [];
-let chartInstance = null;
-let usingLocal = false;
+/* ─── State ─── */
+let uid            = null;      // Firebase UID
+let usingLocal     = false;     // true = localStorage mode
+let transactionData= [];        // array for CSV
+let chartInstance  = null;      // Chart.js instance
 
-// Load theme preference
-if (localStorage.getItem('theme') === 'dark') {
-  document.body.classList.add('dark');
-}
-
+/* ─── Theme handling ─── */
+if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
 themeToggle.onclick = () => {
   document.body.classList.toggle('dark');
   localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
 };
 
+/* ─── Google Auth provider ─── */
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
 
+/* ─── Sign-in button ─── */
 googleBtn.onclick = () => {
-  signInWithPopup(auth, provider).catch(err => {
-    if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
-      signInWithRedirect(auth, provider);
-    } else {
-      alert(err.message);
-    }
-  });
-};
-
-getRedirectResult(auth).catch(err => console.warn(err));
-
-// When user clicks "Use without signing in"
-skipBtn.onclick = () => {
-  usingLocal = true;
-  uid = null;
-  googleBtn.classList.add('hidden');
-  skipBtn.classList.add('hidden');
-  signOutBtn.classList.remove('hidden');
-  signInLaterBtn.style.display = 'block'; // show sign-in later button
-  appDiv.classList.remove('hidden');
-  loadTransactions();
-};
-
-// Handler for "Sign in with Google later"
-signInLaterBtn.onclick = async () => {
-  try {
-    await signInWithPopup(auth, provider);
-    // On success, migrate localStorage data to Firebase
-    const localTxs = getTransactionsLocal();
-    if (localTxs.length > 0) {
-      const batchPromises = localTxs.map(tx => 
-        addDoc(collection(db, 'users', auth.currentUser.uid, 'transactions'), tx)
-      );
-      await Promise.all(batchPromises);
-      clearLocalStorage();
-    }
-    usingLocal = false;
-    signInLaterBtn.style.display = 'none';
-  } catch (err) {
-    alert('Google sign-in failed: ' + err.message);
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    signInWithRedirect(auth, provider);
+  } else {
+    signInWithPopup(auth, provider).catch(err => {
+      if (err.code === 'auth/popup-blocked') {
+        signInWithRedirect(auth, provider);      // fallback
+      } else {
+        alert(err.message);
+      }
+    });
   }
 };
 
-// Sign out handler
+/* ─── Handle redirect result (mobile or fallback) ─── */
+getRedirectResult(auth)
+  .then(result => {
+    if (result && result.user) {
+      // user signed-in after redirect
+      signedInState(result.user);
+    }
+  })
+  .catch(err => console.warn("Redirect sign-in error:", err.message));
+
+/* ─── Skip sign-in (local mode) ─── */
+skipBtn.onclick = () => {
+  usingLocal = true;
+  enterAppUI();
+  signInLaterBtn.style.display = 'block';
+  loadTransactions();
+};
+
+/* ─── Sign in later (migrate local->Firebase) ─── */
+signInLaterBtn.onclick = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+    // migrate local data
+    const localTxs = getLocalTx();
+    if (localTxs.length) {
+      await Promise.all(localTxs.map(tx =>
+        addDoc(collection(db, 'users', auth.currentUser.uid, 'transactions'), tx)
+      ));
+      clearLocalTx();
+    }
+    usingLocal = false;
+    signInLaterBtn.style.display = 'none';
+  } catch (e) {
+    alert('Google sign-in failed: ' + e.message);
+  }
+};
+
+/* ─── Sign-out ─── */
 signOutBtn.onclick = async () => {
   if (usingLocal) {
-    // Clear local session data
-    usingLocal = false;
-    clearLocalStorage();
-    appDiv.classList.add('hidden');
-    googleBtn.classList.remove('hidden');
-    skipBtn.classList.remove('hidden');
-    signOutBtn.classList.add('hidden');
-    signInLaterBtn.style.display = 'none';
+    leaveAppUI();
+    clearLocalTx();
   } else {
     await signOut(auth);
   }
 };
 
-// Auth state listener
+/* ─── Firebase auth state listener ─── */
 onAuthStateChanged(auth, user => {
   if (user) {
-    uid = user.uid;
-    usingLocal = false;
-    googleBtn.classList.add('hidden');
-    skipBtn.classList.add('hidden');
-    signOutBtn.classList.remove('hidden');
-    signInLaterBtn.style.display = 'none';
-    appDiv.classList.remove('hidden');
-    loadTransactions();
+    signedInState(user);
   } else if (!usingLocal) {
-    uid = null;
-    googleBtn.classList.remove('hidden');
-    skipBtn.classList.remove('hidden');
-    signOutBtn.classList.add('hidden');
-    signInLaterBtn.style.display = 'none';
-    appDiv.classList.add('hidden');
+    leaveAppUI();  // show landing buttons again
   }
 });
 
-// Add new transaction
+/* ─── Helpers for UI state ─── */
+function signedInState(user) {
+  uid = user.uid;
+  usingLocal = false;
+  enterAppUI();
+  signInLaterBtn.style.display = 'none';
+  loadTransactions();
+}
+
+function enterAppUI() {
+  googleBtn.classList.add('hidden');
+  skipBtn.classList.add('hidden');
+  signOutBtn.classList.remove('hidden');
+  appDiv.classList.remove('hidden');
+}
+
+function leaveAppUI() {
+  uid = null;
+  usingLocal = false;
+  googleBtn.classList.remove('hidden');
+  skipBtn.classList.remove('hidden');
+  signOutBtn.classList.add('hidden');
+  signInLaterBtn.style.display = 'none';
+  appDiv.classList.add('hidden');
+}
+
+/* ─── Add transaction ─── */
 addBtn.onclick = async () => {
-  const amount = parseFloat(document.getElementById('amount').value);
-  const type = document.getElementById('type').value;
+  const amount   = parseFloat(document.getElementById('amount').value);
+  const type     = document.getElementById('type').value;
   const category = document.getElementById('category').value || 'General';
-  const note = document.getElementById('note').value || '';
+  const note     = document.getElementById('note').value || '';
 
   if (!amount) return;
 
-  if (usingLocal) {
-    // Save locally
-    const tx = { amount, type, category, note, date: Date.now() };
-    saveTransactionLocal(tx);
-    loadTransactions();
-  } else {
-    // Save in Firestore
-    await addDoc(collection(db, 'users', uid, 'transactions'), {
-      amount,
-      type,
-      category,
-      note,
-      date: Date.now()
-    });
-    loadTransactions();
-  }
+  const tx = { amount, type, category, note, date: Date.now() };
 
-  // Clear inputs
-  ['amount', 'category', 'note'].forEach(id => document.getElementById(id).value = '');
+  if (usingLocal) {
+    saveLocalTx(tx);
+  } else {
+    await addDoc(collection(db, 'users', uid, 'transactions'), tx);
+  }
+  ['amount','category','note'].forEach(id => document.getElementById(id).value = '');
+  loadTransactions();
 };
 
-// Load transactions from Firestore or localStorage
+/* ─── Load transactions ─── */
 async function loadTransactions() {
-  if (usingLocal) {
-    const txs = getTransactionsLocal();
-    displayTransactions(txs);
-  } else {
-    const q = query(collection(db, 'users', uid, 'transactions'), orderBy('date', 'desc'));
-    const snap = await getDocs(q);
-    const txs = [];
-    snap.forEach(docSnap => txs.push(docSnap.data()));
-    displayTransactions(txs);
-  }
+  const txs = usingLocal ? getLocalTx()
+        : (await getDocs(query(collection(db, 'users', uid, 'transactions'), orderBy('date','desc'))))
+          .docs.map(d => ({ id: d.id, ...d.data() }));
+
+  transactionData = txs;
+  renderTxList(txs);
+  renderChart(calcCategoryMap(txs));
 }
 
-function displayTransactions(txs) {
+/* Render list and balance */
+function renderTxList(txs) {
   txList.innerHTML = '';
-  transactionData = txs;
   let balance = 0;
-  const catMap = {};
 
   txs.forEach(tx => {
     const li = document.createElement('li');
     li.textContent = `${tx.type.toUpperCase()} • ${tx.category} • ${tx.amount}`;
     li.style.borderLeftColor = tx.type === 'income' ? 'green' : 'red';
 
-    li.onclick = async () => {
+    li.onclick = () => {
       if (!confirm('Delete this transaction?')) return;
-      if (usingLocal) {
-        deleteTransactionLocal(tx);
-        loadTransactions();
-      } else {
-        // Find doc id to delete
-        const q = query(collection(db, 'users', uid, 'transactions'), orderBy('date', 'desc'));
-        const snap = await getDocs(q);
-        let docIdToDelete = null;
-        snap.forEach(docSnap => {
-          const data = docSnap.data();
-          if (
-            data.amount === tx.amount &&
-            data.type === tx.type &&
-            data.category === tx.category &&
-            data.note === tx.note &&
-            data.date === tx.date
-          ) {
-            docIdToDelete = docSnap.id;
-          }
-        });
-        if (docIdToDelete) {
-          await deleteDoc(doc(db, 'users', uid, 'transactions', docIdToDelete));
-          loadTransactions();
-        }
-      }
+      deleteTx(tx);
     };
-
     txList.appendChild(li);
     balance += tx.type === 'income' ? tx.amount : -tx.amount;
-    catMap[tx.category] = (catMap[tx.category] || 0) + tx.amount * (tx.type === 'income' ? 1 : -1);
   });
-
   balanceEl.textContent = balance.toFixed(2);
-  renderChart(catMap);
 }
 
-// Chart rendering
-function renderChart(dataMap) {
-  if (chartInstance) chartInstance.destroy();
+/* Delete local or Firestore tx */
+async function deleteTx(tx) {
+  if (usingLocal) {
+    removeLocalTx(tx);
+    loadTransactions();
+  } else {
+    if (!tx.id) return; // should not happen
+    await deleteDoc(doc(db, 'users', uid, 'transactions', tx.id));
+    loadTransactions();
+  }
+}
 
+/* Build category map for chart */
+function calcCategoryMap(txs) {
+  const map = {};
+  txs.forEach(tx => {
+    map[tx.category] = (map[tx.category] || 0) + tx.amount * (tx.type === 'income' ? 1 : -1);
+  });
+  return map;
+}
+
+/* Chart.js bar chart */
+function renderChart(map) {
+  if (chartInstance) chartInstance.destroy();
   chartInstance = new Chart(chartCanvas.getContext('2d'), {
     type: 'bar',
     data: {
-      labels: Object.keys(dataMap),
+      labels: Object.keys(map),
       datasets: [{
         label: 'Balance by Category',
-        data: Object.values(dataMap),
+        data: Object.values(map),
         backgroundColor: '#16a34a'
       }]
     },
@@ -257,57 +256,30 @@ function renderChart(dataMap) {
       responsive: true,
       plugins: {
         legend: { display: false },
-        title: { display: true, text: 'Category Summary' }
+        title:  { display: true, text: 'Category Summary' }
       }
     }
   });
 }
 
-// LocalStorage helpers
-function getTransactionsLocal() {
-  const data = localStorage.getItem('transactions');
-  return data ? JSON.parse(data) : [];
-}
-
-function saveTransactionLocal(tx) {
-  const arr = getTransactionsLocal();
-  arr.unshift(tx);
-  localStorage.setItem('transactions', JSON.stringify(arr));
-}
-
-function deleteTransactionLocal(tx) {
-  let arr = getTransactionsLocal();
-  arr = arr.filter(t =>
-    !(
-      t.amount === tx.amount &&
-      t.type === tx.type &&
-      t.category === tx.category &&
-      t.note === tx.note &&
-      t.date === tx.date
-    )
-  );
-  localStorage.setItem('transactions', JSON.stringify(arr));
-}
-
-function clearLocalStorage() {
-  localStorage.removeItem('transactions');
-}
-
-// CSV download handler
+/* ─── CSV export ─── */
 csvBtn.onclick = () => {
-  if (transactionData.length === 0) {
-    alert('No data to export');
-    return;
-  }
-  const csv = "type,category,amount,note,date\n" + transactionData.map(tx =>
-    `${tx.type},${tx.category},${tx.amount},${tx.note},${new Date(tx.date).toLocaleString()}`
-  ).join('\n');
-
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'transactions.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  if (!transactionData.length) return alert('No data to export');
+  const csv = 'type,category,amount,note,date\n' +
+    transactionData.map(t =>
+      `${t.type},${t.category},${t.amount},${t.note},${new Date(t.date).toLocaleString()}`
+    ).join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href:url, download:'transactions.csv' });
+  a.click(); URL.revokeObjectURL(url);
 };
+
+/* ─── localStorage helpers ─── */
+function getLocalTx()   { return JSON.parse(localStorage.getItem('transactions') || '[]'); }
+function saveLocalTx(t) { const arr=getLocalTx(); arr.unshift(t); localStorage.setItem('transactions', JSON.stringify(arr)); }
+function removeLocalTx(t){
+  const arr=getLocalTx().filter(x=>!(x.amount===t.amount&&x.type===t.type&&x.category===t.category&&x.note===t.note&&x.date===t.date));
+  localStorage.setItem('transactions', JSON.stringify(arr));
+}
+function clearLocalTx() { localStorage.removeItem('transactions'); }
