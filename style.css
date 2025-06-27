@@ -38,6 +38,7 @@ button {
   border: none;
 }
 
+/* Google sign-in button */
 .btn-google {
   display: flex;
   align-items: center;
@@ -55,6 +56,7 @@ button {
   border-radius: 50%;
 }
 
+/* Primary button */
 .btn-primary {
   background: var(--accent);
   color: #fff;
@@ -67,18 +69,29 @@ body.dark .btn-primary {
   background: var(--accent-dark);
 }
 
+/* Secondary button - used for skip, csv, sign in later */
 .btn-secondary {
-  background: transparent;
-  color: inherit;
-  border: 1px solid #d1d5db;
-  border-radius: 0.6rem;
-  padding: 0.5rem;
+  background: #e2e8f0;
+  color: #374151;
+  border: 1px solid #94a3b8;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem;
   width: 100%;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
   margin-top: 0.5rem;
 }
 
-body.dark .btn-secondary {
-  border-color: #374151;
+.btn-secondary:hover {
+  background: #cbd5e1;
+  border-color: #64748b;
+  color: #1e293b;
+}
+
+/* Hide signInLater by default */
+#signInLater {
+  display: none;
 }
 
 .header {
