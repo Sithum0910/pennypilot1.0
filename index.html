@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Budget Tracker</h1>
+    <button id="googleSignIn" class="btn-google">Sign in with Google</button>
+
+    <div id="app" class="hidden">
+      <header class="header">
+        <h2>Balance: <span id="balance">0.00</span></h2>
+        <div class="header-actions">
+          <button id="themeToggle" title="Toggle theme">🌙</button>
+          <button id="signOut" title="Sign Out">⎋</button>
+        </div>
+      </header>
+
+      <div class="form">
+        <input type="number" id="amount" placeholder="Amount" />
+        <select id="type">
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+        <input type="text" id="category" placeholder="Category" />
+        <input type="text" id="note" placeholder="Note" />
+        <button id="add" class="btn-primary">Add</button>
+      </div>
+
+      <ul id="transactions"></ul>
+    </div>
+  </div>
+
+  <!-- Main logic -->
+  <script type="module" src="script.js"></script>
+</body>
+</html>
