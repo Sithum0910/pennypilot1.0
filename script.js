@@ -45,6 +45,7 @@ const txList = document.getElementById('transactions');
 const balanceEl = document.getElementById('balance');
 const csvBtn = document.getElementById('csvBtn');
 const chartCanvas = document.getElementById('chart');
+const signInLaterBtn = document.getElementById('signInLater');
 
 let uid = null;
 let transactionData = [];
@@ -83,8 +84,29 @@ skipBtn.onclick = () => {
   googleBtn.classList.add('hidden');
   skipBtn.classList.add('hidden');
   signOutBtn.classList.remove('hidden');
+  signInLaterBtn.style.display = 'block'; // show sign-in later button
   appDiv.classList.remove('hidden');
   loadTransactions();
+};
+
+// Handler for "Sign in with Google later"
+signInLaterBtn.onclick = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+    // On success, migrate localStorage data to Firebase
+    const localTxs = getTransactionsLocal();
+    if (localTxs.length > 0) {
+      const batchPromises = localTxs.map(tx => 
+        addDoc(collection(db, 'users', auth.currentUser.uid, 'transactions'), tx)
+      );
+      await Promise.all(batchPromises);
+      clearLocalStorage();
+    }
+    usingLocal = false;
+    signInLaterBtn.style.display = 'none';
+  } catch (err) {
+    alert('Google sign-in failed: ' + err.message);
+  }
 };
 
 // Sign out handler
@@ -97,6 +119,7 @@ signOutBtn.onclick = async () => {
     googleBtn.classList.remove('hidden');
     skipBtn.classList.remove('hidden');
     signOutBtn.classList.add('hidden');
+    signInLaterBtn.style.display = 'none';
   } else {
     await signOut(auth);
   }
@@ -110,6 +133,7 @@ onAuthStateChanged(auth, user => {
     googleBtn.classList.add('hidden');
     skipBtn.classList.add('hidden');
     signOutBtn.classList.remove('hidden');
+    signInLaterBtn.style.display = 'none';
     appDiv.classList.remove('hidden');
     loadTransactions();
   } else if (!usingLocal) {
@@ -117,6 +141,7 @@ onAuthStateChanged(auth, user => {
     googleBtn.classList.remove('hidden');
     skipBtn.classList.remove('hidden');
     signOutBtn.classList.add('hidden');
+    signInLaterBtn.style.display = 'none';
     appDiv.classList.add('hidden');
   }
 });
@@ -267,3 +292,22 @@ function deleteTransactionLocal(tx) {
 function clearLocalStorage() {
   localStorage.removeItem('transactions');
 }
+
+// CSV download handler
+csvBtn.onclick = () => {
+  if (transactionData.length === 0) {
+    alert('No data to export');
+    return;
+  }
+  const csv = "type,category,amount,note,date\n" + transactionData.map(tx =>
+    `${tx.type},${tx.category},${tx.amount},${tx.note},${new Date(tx.date).toLocaleString()}`
+  ).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'transactions.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+};
