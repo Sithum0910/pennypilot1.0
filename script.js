@@ -1,53 +1,53 @@
-// script.js
+/**** basic SPA + dark-mode toggle (mobile friendly) ****/
 
-// Mini SPA Router
-const pages = document.querySelectorAll(".page");
-const links = document.querySelectorAll(".nav-links li");
+// mobile nav toggle
+const hamburger = document.getElementById("hamburger");
+const navLinks  = document.querySelector(".nav-links");
+hamburger.addEventListener("click", () => navLinks.classList.toggle("open"));
 
-links.forEach(link => {
-  link.addEventListener("click", () => {
-    const page = link.getAttribute("data-page");
-    pages.forEach(p => p.classList.remove("active"));
-    document.getElementById(page).classList.add("active");
-    links.forEach(l => l.classList.remove("active"));
-    link.classList.add("active");
-  });
+// page router
+document.querySelectorAll(".nav-links li").forEach(li=>{
+  li.onclick=()=>{
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    document.getElementById(li.dataset.page).classList.add("active");
+    document.querySelectorAll(".nav-links li").forEach(l=>l.classList.remove("active"));
+    li.classList.add("active");
+    navLinks.classList.remove("open");      // auto close on mobile
+  };
 });
 
-// Theme Toggle
-document.getElementById("themeToggle").addEventListener("click", () => {
-  document.body.classList.toggle("dark");
-});
-
-// Placeholder Auth (replace with Firebase)
-document.getElementById("googleSignIn").addEventListener("click", () => {
-  alert("Google Sign In – Connect Firebase here.");
-});
-document.getElementById("signOut").addEventListener("click", () => {
-  alert("Sign Out – Hook into Firebase sign out.");
-});
-
-// Budget progress example
-function updateBudgetBar(current, goal) {
-  const bar = document.getElementById("budgetBar");
-  const label = document.getElementById("budgetLabel");
-  const percent = (current / goal) * 100;
-  bar.style.width = percent + "%";
-  label.textContent = `$${goal - current} left of $${goal}`;
+// dark-mode toggle
+const modeToggle = document.getElementById("modeToggle");
+if(localStorage.theme==='dark') {
+  document.documentElement.setAttribute("data-theme","dark");
+  modeToggle.checked = true;
 }
-updateBudgetBar(6500, 10000);
-
-// Example dashboard chart
-const ctx = document.getElementById("dashChart").getContext("2d");
-new Chart(ctx, {
-  type: "bar",
-  data: {
-    labels: ["Housing", "Food", "Transportation", "Entertainment", "Utilities", "Healthcare"],
-    datasets: [{
-      label: "Expenses",
-      data: [1200, 800, 1300, 200, 100, 950],
-      backgroundColor: "#3b82f6"
-    }]
-  },
-  options: { responsive: true, plugins: { legend: { display: false } } }
+modeToggle.addEventListener("change", e=>{
+  const theme = e.target.checked ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.theme = theme;
 });
+
+// demo chart
+const ctx = document.getElementById("dashChart");
+if(ctx){
+  new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels:["Food","Transport","Rent","Other"],
+      datasets:[{ data:[200,150,620,90], backgroundColor:["#2563eb","#4ade80","#fbbf24","#f87171"] }]
+    },
+    options:{plugins:{legend:{position:"bottom"}}}
+  });
+}
+
+// transactions demo (no Firebase yet)
+document.getElementById("txForm").onsubmit=e=>{
+  e.preventDefault();
+  const amt=+txAmount.value;
+  if(!amt) return;
+  const li=document.createElement("li");
+  li.textContent=`${txType.value.toUpperCase()} — $${amt}`;
+  txList.prepend(li);
+  e.target.reset();
+};
