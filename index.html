@@ -2,48 +2,87 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Budget Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinTrack • Budget SaaS</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>Budget Tracker</h1>
-
-    <!-- Google sign-in + guest option -->
-    <button id="googleSignIn" class="btn-google">
-      <img src="https://accounts.google.com/favicon.ico" width="20" height="20" />
-      <span>Sign in with Google</span>
-    </button>
-    <button id="skipSignIn" class="btn-secondary">Use without signing in</button>
-
-    <div id="app" class="hidden">
-      <header class="header">
-        <h2>Balance: <span id="balance">0.00</span></h2>
-        <div class="header-actions">
-          <button id="themeToggle" title="Toggle theme">🌙</button>
-          <button id="signOut" title="Sign Out">⎋</button>
-        </div>
-      </header>
-
-      <div class="form">
-        <input type="number" id="amount" placeholder="Amount" />
-        <select id="type">
-          <option value="income">Income</option>
-          <option value="expense">Expense</option>
-        </select>
-        <input type="text" id="category" placeholder="Category" />
-        <input type="text" id="note" placeholder="Note" />
-        <button id="add" class="btn-primary">Add</button>
-      </div>
-
-      <ul id="transactions"></ul>
-      <canvas id="chart" height="200"></canvas>
-      <button id="csvBtn" class="btn-secondary">Download CSV</button>
-      <button id="signInLater" class="btn-secondary">Sign in with Google later</button>
+  <nav class="top-nav">
+    <div class="brand">FinTrack</div>
+    <ul class="nav-links">
+      <li data-page="dashboard" class="active">Dashboard</li>
+      <li data-page="transactions">Transactions</li>
+      <li data-page="budgets">Budgets</li>
+      <li data-page="reports">Reports</li>
+    </ul>
+    <div class="nav-actions">
+      <button id="themeToggle">🌙</button>
+      <img id="userAvatar" class="avatar hidden" src="" alt="avatar" />
+      <button id="googleSignIn" class="btn-google">Sign in</button>
+      <button id="signOut" class="btn-icon hidden">⎋</button>
     </div>
-  </div>
+  </nav>
+
+  <main id="content">
+    <section id="dashboard" class="page active">
+      <h1>Dashboard</h1>
+      <p class="subtitle">Your financial overview at a glance.</p>
+      <div class="cards-grid">
+        <div class="card stat" id="statIncome"><h3>Total Income</h3><span>$0</span></div>
+        <div class="card stat" id="statExpense"><h3>Total Expenses</h3><span>$0</span></div>
+        <div class="card stat" id="statSavings"><h3>Net Savings</h3><span>$0</span></div>
+      </div>
+      <h2>Spending Breakdown</h2>
+      <div class="card"><canvas id="dashChart"></canvas></div>
+      <h2>Budget Status</h2>
+      <div class="card">
+        <div class="progress-wrapper"><div id="budgetBar" class="progress-bar"></div></div>
+        <p id="budgetLabel">No goal set</p>
+        <div class="btn-row">
+          <button id="addIncomeBtn" class="btn-primary">Add Income</button>
+          <button id="addExpenseBtn" class="btn-secondary">Add Expense</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="transactions" class="page">
+      <h1>Transactions</h1>
+      <div class="card">
+        <form id="txForm" class="tx-form">
+          <select id="txType">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+          <input type="number" id="txAmount" placeholder="Amount" />
+          <input type="text" id="txCategory" placeholder="Category" />
+          <input type="text" id="txNote" placeholder="Note (optional)" />
+          <button type="submit" class="btn-primary">Add</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2>History</h2>
+        <ul id="txList"></ul>
+      </div>
+    </section>
+
+    <section id="budgets" class="page">
+      <h1>Budgets</h1>
+      <p class="subtitle">Manage your spending limits for different categories.</p>
+      <div id="budgetList" class="card"></div>
+    </section>
+
+    <section id="reports" class="page">
+      <h1>Reports</h1>
+      <p class="subtitle">Analyze your financial health with detailed reports.</p>
+      <div class="tabs">
+        <button class="tab active" data-tab="monthly">Monthly</button>
+        <button class="tab" data-tab="quarterly">Quarterly</button>
+        <button class="tab" data-tab="yearly">Yearly</button>
+      </div>
+      <div class="card"><canvas id="reportChart"></canvas></div>
+    </section>
+  </main>
 
   <script type="module" src="script.js"></script>
 </body>
